@@ -1,5 +1,5 @@
 class Gate:
-    def __init__(self, input1, input2, gate):
+    def __init__(self, gate, input1, input2):
         self.gate = gate
         self.input1 = input1
         self.input2 = input2
@@ -15,24 +15,17 @@ inputArr = [int(s, 16) for s in inputArr]
 outputArr = np.array(np.genfromtxt('output.csv', delimiter=', ', dtype='str'))
 outputArr = [int(s, 16) for s in outputArr]
 
-# for i in range(len(inputArr)):
-#     inputArr[i] = np.binary_repr(inputArr[i])
-#     outputArr[i] = np.binary_repr(outputArr[i])
-
 def generate():
-    # gates = np.ndarray(shape=(5,6))
     gates = []
-    for i in range(1):
+    for i in range(random.randint(1,6)):
         subGates = []
         for j in range(5):
             ggate = Gate(random.randint(0,4), random.randint(0,4), random.randint(0,4))
             subGates.append(ggate)
-            print(ggate)
 
         gates.append(subGates)
 
-    # return evaluateBits(gates)
-    print("Correct ", evaluateBits(gates))
+    return gates
 
 def evaluateBits(gates):
     correct = 0
@@ -45,9 +38,10 @@ def evaluateBits(gates):
                 logicGateBit += runGate(gates[i][j], logicGate)
             logicGate = logicGateBit
 
-        print([logicGate, outputArr[k]])
-        if logicGate == outputArr[k]:
-            correct += 1
+        # Check the bits match
+        for i in range(4):
+            if (logicGate >> i) & 1 == (outputArr[k] >> i) & 1:
+                correct += 1
 
     return correct
 
@@ -66,6 +60,47 @@ def runGate(gate, binNum):
     else: # negate
         return 0 if val1 == 1 else 1
 
+def mutateGate(gate, chance):
+    newGate = gate.gate
+    newinput1 = gate.input1
+    newinput2 = gate.input2
+    if random.random() < chance:
+        newGate = random.randint(0,4)
+    if random.random() < chance:
+        newinput1 = random.randint(0,4)
+    if random.random() < chance:
+        newinput2 = random.randint(0,4)
 
-# while (generate() == 0):
-generate()
+    return Gate(newGate, newinput1, newinput2)
+
+def mutate(organism, chance):
+    mutatedOrg = []
+    for i in range(len(organism)):
+        mutatedOrgLayer = []
+        for j in range(len(organism[i])):
+            mutatedOrgLayer.append(mutateGate(organism[i][j]), chance)
+        mutatedOrg.append(mutatedOrgLayer)
+
+    return mutatedOrg
+
+# Generate initial
+bestOrganism = generate()
+best = evaluateBits(bestOrganism)
+print("New best: ", best)
+
+generationCount = 1
+chance = 0.1
+
+while 1:
+    bestOrganismTmp = bestOrganism
+    for e in range(10):
+        mutated = mutate(bestOrganism, chance)
+        evalNum = evaluateBits(mutated)
+        if (evalNum > best):
+            best = evalNum
+            bestOrganismTmp = mutated
+            print("New best: ", best)
+    bestOrganism = bestOrganismTmp
+    if generationCount % 1000 == 0:
+        print("Completed generation ", generationCount)
+    generationCount += 1
