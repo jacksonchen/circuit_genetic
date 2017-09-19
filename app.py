@@ -9,6 +9,9 @@ class Gate:
 
 import numpy as np
 import random
+GEN_LIMIT = 500
+CHANCE_CONST = 0.05
+MODIFIER_CONST = 0.05
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
 inputArr = [int(s, 16) for s in inputArr]
@@ -77,8 +80,8 @@ def mutate(organism, chance):
     mutatedOrg = []
     for i in range(len(organism)):
         mutatedOrgLayer = []
-        for j in range(len(organism[i])):
-            mutatedOrgLayer.append(mutateGate(organism[i][j]), chance)
+        for j in range(5):
+            mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
         mutatedOrg.append(mutatedOrgLayer)
 
     return mutatedOrg
@@ -86,21 +89,56 @@ def mutate(organism, chance):
 # Generate initial
 bestOrganism = generate()
 best = evaluateBits(bestOrganism)
+globalBest = best
 print("New best: ", best)
 
 generationCount = 1
-chance = 0.1
+chance = CHANCE_CONST
+modifier = MODIFIER_CONST
+genLimit = GEN_LIMIT
+avg = 0
+improved = False
 
 while 1:
-    bestOrganismTmp = bestOrganism
+    bestOrganismTmp = None
+    best = 0
     for e in range(10):
         mutated = mutate(bestOrganism, chance)
         evalNum = evaluateBits(mutated)
-        if (evalNum > best):
+        avg += evalNum
+        if evalNum > best:
             best = evalNum
             bestOrganismTmp = mutated
+        if best > globalBest:
             print("New best: ", best)
+            globalBest = best
+            improved = True
+
     bestOrganism = bestOrganismTmp
-    if generationCount % 1000 == 0:
-        print("Completed generation ", generationCount)
+    if generationCount % 500 == 0:
+        avg /= 5000
+        print("Completed generation", generationCount)
+        print("Average", avg)
+        print("Best", best)
+        avg = 0
     generationCount += 1
+
+    # Annealing
+    if improved:
+        genLimit = GEN_LIMIT
+        chance = CHANCE_CONST
+        improved = False
+    else:
+        genLimit -= 1
+
+    if (genLimit == 0):
+        chance += modifier
+        genLimit = GEN_LIMIT
+        print("Annealed chance now", chance)
+    elif (genLimit < 0):
+        if (genLimit % 5 == 0 and genLimit % GEN_LIMIT != 0):
+            chance = CHANCE_CONST
+            print("Annealed chance now", chance)
+        elif (genLimit % GEN_LIMIT == 0):
+            chance += ((-1) * genLimit / GEN_LIMIT) * modifier
+            print("Annealed chance now", chance)
