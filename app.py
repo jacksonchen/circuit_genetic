@@ -9,12 +9,13 @@ class Gate:
 
 import numpy as np
 import random
-GEN_LIMIT = 500
+GEN_LIMIT = 1000
 CHANCE_CONST = 0.05
 MODIFIER_CONST = 0.05
-NUM_CHILDREN = 30
+NUM_CHILDREN = 10
 ANNEAL_GEN_LIMIT = 50
 ANNEAL_MAX = 0.9
+NUM_LAYERS = 4
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
 inputArr = [int(s, 16) for s in inputArr]
@@ -23,7 +24,7 @@ outputArr = [int(s, 16) for s in outputArr]
 
 def generate():
     gates = []
-    for i in range(random.randint(1,6)):
+    for i in range(random.randint(1,NUM_LAYERS)):
         subGates = []
         for j in range(5):
             ggate = Gate(random.randint(0,4), random.randint(0,4), random.randint(0,4))
@@ -70,22 +71,55 @@ def mutateGate(gate, chance):
     newGate = gate.gate
     newinput1 = gate.input1
     newinput2 = gate.input2
+    inputChoices = [0, 1, 2, 3, 4]
+
+    # Mutate the gate
     if random.random() < chance:
         newGate = random.randint(0,4)
+
+    # Mutate first input
     if random.random() < chance:
         newinput1 = random.randint(0,4)
+        inputChoices.remove(newinput1)
+
+    # Mutate second input
     if random.random() < chance:
-        newinput2 = random.randint(0,4)
+        newinput2 = random.choice(inputChoices)
 
     return Gate(newGate, newinput1, newinput2)
 
 def mutate(organism, chance):
     mutatedOrg = []
-    for i in range(len(organism)):
-        mutatedOrgLayer = []
-        for j in range(5):
-            mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
-        mutatedOrg.append(mutatedOrgLayer)
+
+    # Mutate number of layers
+    if random.random() < chance:
+        newLayers = random.randint(1,NUM_LAYERS)
+        if newLayers <= len(organism):
+            organismCopy = organism[:]
+            for i in range(newLayers):
+                mutatedOrgLayer = []
+                chosenGateLayer = random.choice(organismCopy)
+                organismCopy.remove(chosenGateLayer)
+                for j in range(5):
+                    mutatedOrgLayer.append(mutateGate(chosenGateLayer[j], chance))
+                mutatedOrg.append(mutatedOrgLayer)
+        else:
+            for i in range(len(organism)):
+                mutatedOrgLayer = []
+                for j in range(5):
+                    mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
+                mutatedOrg.append(mutatedOrgLayer)
+            for i in range(newLayers - len(organism), newLayers):
+                mutatedOrgLayer = []
+                for j in range(5):
+                    mutatedOrgLayer.append(Gate(random.randint(0,4), random.randint(0,4), random.randint(0,4)))
+                mutatedOrg.append(mutatedOrgLayer)
+    else:
+        for i in range(len(organism)):
+            mutatedOrgLayer = []
+            for j in range(5):
+                mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
+            mutatedOrg.append(mutatedOrgLayer)
 
     return mutatedOrg
 
@@ -114,14 +148,14 @@ while 1:
             best = evalNum
             bestOrganismTmp = mutated
         if best > globalBest:
-            print("New best: ", best)
+            print("New best: ", best, "Layers", len(bestOrganismTmp))
             globalBest = best
             improved = True
 
     bestOrganism = bestOrganismTmp
-    if generationCount % 500 == 0:
-        avg /= 5000
-        print("Generation", generationCount, "Average", avg, "Best", best)
+    if generationCount % 1000 == 0:
+        avg /= (NUM_CHILDREN * 1000)
+        print("Generation", generationCount, "Average", avg)
         avg = 0
     generationCount += 1
 
@@ -138,7 +172,7 @@ while 1:
         chanceHist = chance
         chance = CHANCE_CONST
 
-    if (genLimit == 0 && chance < ANNEAL_MAX):
+    if (genLimit == 0 and chance < ANNEAL_MAX):
         chance = chanceHist + modifier
         genLimit = GEN_LIMIT
         print("Annealed chance now", chance)
