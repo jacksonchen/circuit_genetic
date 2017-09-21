@@ -12,6 +12,9 @@ import random
 GEN_LIMIT = 500
 CHANCE_CONST = 0.05
 MODIFIER_CONST = 0.05
+NUM_CHILDREN = 30
+ANNEAL_GEN_LIMIT = 50
+ANNEAL_MAX = 0.9
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
 inputArr = [int(s, 16) for s in inputArr]
@@ -94,6 +97,7 @@ print("New best: ", best)
 
 generationCount = 1
 chance = CHANCE_CONST
+chanceHist = chance
 modifier = MODIFIER_CONST
 genLimit = GEN_LIMIT
 avg = 0
@@ -102,7 +106,7 @@ improved = False
 while 1:
     bestOrganismTmp = None
     best = 0
-    for e in range(10):
+    for e in range(NUM_CHILDREN):
         mutated = mutate(bestOrganism, chance)
         evalNum = evaluateBits(mutated)
         avg += evalNum
@@ -117,9 +121,7 @@ while 1:
     bestOrganism = bestOrganismTmp
     if generationCount % 500 == 0:
         avg /= 5000
-        print("Completed generation", generationCount)
-        print("Average", avg)
-        print("Best", best)
+        print("Generation", generationCount, "Average", avg, "Best", best)
         avg = 0
     generationCount += 1
 
@@ -127,18 +129,16 @@ while 1:
     if improved:
         genLimit = GEN_LIMIT
         chance = CHANCE_CONST
+        chanceHist = CHANCE_CONST
         improved = False
     else:
         genLimit -= 1
 
-    if (genLimit == 0):
-        chance += modifier
+    if (chance != CHANCE_CONST and genLimit == GEN_LIMIT - ANNEAL_GEN_LIMIT):
+        chanceHist = chance
+        chance = CHANCE_CONST
+
+    if (genLimit == 0 && chance < ANNEAL_MAX):
+        chance = chanceHist + modifier
         genLimit = GEN_LIMIT
         print("Annealed chance now", chance)
-    elif (genLimit < 0):
-        if (genLimit % 5 == 0 and genLimit % GEN_LIMIT != 0):
-            chance = CHANCE_CONST
-            print("Annealed chance now", chance)
-        elif (genLimit % GEN_LIMIT == 0):
-            chance += ((-1) * genLimit / GEN_LIMIT) * modifier
-            print("Annealed chance now", chance)
