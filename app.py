@@ -12,10 +12,11 @@ import random
 GEN_LIMIT = 1000
 CHANCE_CONST = 0.05
 MODIFIER_CONST = 0.05
-NUM_CHILDREN = 10
+NUM_CHILDREN = 20
 ANNEAL_GEN_LIMIT = 50
 ANNEAL_MAX = 0.9
 NUM_LAYERS = 4
+AUTO_TERMINATE = 100000
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
 inputArr = [int(s, 16) for s in inputArr]
@@ -134,6 +135,7 @@ chance = CHANCE_CONST
 chanceHist = chance
 modifier = MODIFIER_CONST
 genLimit = GEN_LIMIT
+autoTerm = 0
 avg = 0
 improved = False
 
@@ -164,6 +166,7 @@ while 1:
         genLimit = GEN_LIMIT
         chance = CHANCE_CONST
         chanceHist = CHANCE_CONST
+        autoTerm = 0
         improved = False
     else:
         genLimit -= 1
@@ -172,7 +175,24 @@ while 1:
         chanceHist = chance
         chance = CHANCE_CONST
 
-    if (genLimit == 0 and chance < ANNEAL_MAX):
+    if (autoTerm >= AUTO_TERMINATE):
+        print("==========Restarting==========")
+
+        bestOrganism = generate()
+        best = evaluateBits(bestOrganism)
+        globalBest = best
+        print("New best: ", best)
+
+        generationCount = 1
+        chance = CHANCE_CONST
+        chanceHist = chance
+        modifier = MODIFIER_CONST
+        genLimit = GEN_LIMIT
+        autoTerm = 0
+        avg = 0
+        improved = False
+    elif (genLimit == 0):
         chance = chanceHist + modifier
         genLimit = GEN_LIMIT
+        autoTerm += GEN_LIMIT
         print("Annealed chance now", chance)
