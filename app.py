@@ -12,10 +12,10 @@ import random
 GEN_LIMIT = 1000
 CHANCE_CONST = 0.05
 MODIFIER_CONST = 0.05
-NUM_CHILDREN = 20
-ANNEAL_GEN_LIMIT = 50
+NUM_CHILDREN = 10
+ANNEAL_GEN_LIMIT = 300
 ANNEAL_MAX = 0.9
-NUM_LAYERS = 4
+NUM_LAYERS = 6
 AUTO_TERMINATE = 100000
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
@@ -101,24 +101,42 @@ def mutate(organism, chance):
                 mutatedOrgLayer = []
                 chosenGateLayer = random.choice(organismCopy)
                 organismCopy.remove(chosenGateLayer)
-                for j in range(5):
+
+                # Mutate the order of the gates
+                gateOrder = list(range(5))
+                if random.random() < chance:
+                    random.shuffle(gateOrder)
+
+                for j in gateOrder:
                     mutatedOrgLayer.append(mutateGate(chosenGateLayer[j], chance))
                 mutatedOrg.append(mutatedOrgLayer)
         else:
             for i in range(len(organism)):
                 mutatedOrgLayer = []
-                for j in range(5):
+                gateOrder = list(range(5))
+                if random.random() < chance:
+                    random.shuffle(gateOrder)
+
+                for j in gateOrder:
                     mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
                 mutatedOrg.append(mutatedOrgLayer)
             for i in range(newLayers - len(organism), newLayers):
                 mutatedOrgLayer = []
-                for j in range(5):
+                gateOrder = list(range(5))
+                if random.random() < chance:
+                    random.shuffle(gateOrder)
+
+                for j in gateOrder:
                     mutatedOrgLayer.append(Gate(random.randint(0,4), random.randint(0,4), random.randint(0,4)))
                 mutatedOrg.append(mutatedOrgLayer)
     else:
         for i in range(len(organism)):
             mutatedOrgLayer = []
-            for j in range(5):
+            gateOrder = list(range(5))
+            if random.random() < chance:
+                random.shuffle(gateOrder)
+
+            for j in gateOrder:
                 mutatedOrgLayer.append(mutateGate(organism[i][j], chance))
             mutatedOrg.append(mutatedOrgLayer)
 
