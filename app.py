@@ -1,39 +1,54 @@
 class Gate:
-    def __init__(self, gate, input1, input2):
+    def __init__(self, gate, inputPins):
         self.gate = gate
-        self.input1 = input1
-        self.input2 = input2
+        self.inputPins = inputPins
 
     def __str__(self):
-        return "Gate {}, Input1: {}, Input2: {}".format(self.gate, self.input1, self.input2)
+        return "Gate {}, Input: {}".format(self.gate, self.inputPins)
 
 import numpy as np
 import random
 GEN_LIMIT = 1000
-CHANCE_CONST = 0.05
-MODIFIER_CONST = 0.05
+CHANCE_CONST = 1
+MODIFIER_CONST = 0
 NUM_CHILDREN = 10
-ANNEAL_GEN_LIMIT = 300
+ANNEAL_GEN_LIMIT = GEN_LIMIT
 ANNEAL_MAX = 0.9
-NUM_LAYERS = 6
 AUTO_TERMINATE = 100000
+SELECTION_POOL = 5
 
 inputArr = np.array(np.genfromtxt('input.csv', delimiter=', ', dtype='str'))
 inputArr = [int(s, 16) for s in inputArr]
 outputArr = np.array(np.genfromtxt('output.csv', delimiter=', ', dtype='str'))
 outputArr = [int(s, 16) for s in outputArr]
 
+# Mask
+#   Output Bits [5]
+#       Layer 1 Gates
+#           Pins, each associated with an input bit
+#       Layer 2 Gate - Random gate connecting result of layer 1
+
 def generate():
-    gates = []
-    for i in range(random.randint(1,NUM_LAYERS)):
-        subGates = []
-        for j in range(5):
-            ggate = Gate(random.randint(0,4), random.randint(0,4), random.randint(0,4))
-            subGates.append(ggate)
+    mask = []
+    for j in range(5):
+        layer = []
+        outputbits = []
+        # Layer 1
+        gate1count = random.randint(2,7)
 
-        gates.append(subGates)
+        for k in range(gate1count):
+            # All the pins that connect to one gate
+            pins = []
+            inputPins = random.randint(2,5)
+            for l in range(inputPins):
+                pins.append(random.randint(0,4))
+            outputbits.append(Gate(random.randint(0,4), pins))
+        layer.append(outputbits)
 
-    return gates
+        # Layer 2
+        mask.append(Gate(random.randint(0,4), []))
+
+    return mask
 
 def evaluateBits(gates):
     correct = 0
@@ -193,23 +208,23 @@ while 1:
         chanceHist = chance
         chance = CHANCE_CONST
 
-    if (autoTerm >= AUTO_TERMINATE):
-        print("==========Restarting==========")
-
-        bestOrganism = generate()
-        best = evaluateBits(bestOrganism)
-        globalBest = best
-        print("New best: ", best)
-
-        generationCount = 1
-        chance = CHANCE_CONST
-        chanceHist = chance
-        modifier = MODIFIER_CONST
-        genLimit = GEN_LIMIT
-        autoTerm = 0
-        avg = 0
-        improved = False
-    elif (genLimit == 0):
+    # if (autoTerm >= AUTO_TERMINATE):
+    #     print("==========Restarting==========")
+    #
+    #     bestOrganism = generate()
+    #     best = evaluateBits(bestOrganism)
+    #     globalBest = best
+    #     print("New best: ", best)
+    #
+    #     generationCount = 1
+    #     chance = CHANCE_CONST
+    #     chanceHist = chance
+    #     modifier = MODIFIER_CONST
+    #     genLimit = GEN_LIMIT
+    #     autoTerm = 0
+    #     avg = 0
+    #     improved = False
+    if (genLimit == 0):
         chance = chanceHist + modifier
         genLimit = GEN_LIMIT
         autoTerm += GEN_LIMIT
